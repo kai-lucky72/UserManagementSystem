@@ -1,0 +1,240 @@
+1. Roles & Permissions
+
+Role	Can Create / Manage	Can View	Messaging	Special Rules
+Admin	Managers	All users, help requests	→ Managers	– Single “bootstrap” Admin on first run
+– Can (de)activate any account
+– Cannot message SalesStaff or Agents
+Manager	SalesStaff	All Agents via their SalesStaff	→ SalesStaff, → Admin	– (De)activating SalesStaff keeps their Agents’ data live
+– Cannot message Agents directly
+SalesStaff	Individual & Group Agents<br/>TeamLeaders	Their own Agents (incl. groups)	→ Agents, → TeamLeaders, → Manager	– Can reassign / deactivate Leaders & Agents
+– Fires: mark account inactive, data persists until Admin purges
+TeamLeader	n/a	Their own Group’s Agents	→ SalesStaff	– Collects sub‑reports from group and submits aggregate to SalesStaff
+– Cannot manage (create/update/delete) any users
+Agent	Clients	Their own performance & messages	→ SalesStaff	– Two sub‑types:
+• Individual (reports → SalesStaff)
+• Group member (reports → TeamLeader)
+2. Logical Entity‑Relationship Model
+text
+Copy
+Edit
+[Users] 1–N [Clients]
+     │          │
+     └─1 [Attendance]      [AgentGroups] 1–N [AgentGroupMembers] N–1 [Users] (Agents)
+     │                                │
+     └─1 [DailyReports]               └─1 [Users] (SalesStaff)
+  
+[Users] 1–N [AttendanceTimeFrames]
+[Users] 1–N [HelpRequests]
+[Users] 1–N [Messages] N–1 [Users]
+Users (single table for all roles; role enum: Admin, Manager, SalesStaff, TeamLeader, Agent)
+
+AgentGroups holds each group, its leaderId, salesStaffId
+
+AgentGroupMembers joins group ↔ agent
+
+Clients now include insurance/product/payment/fee/location
+
+AttendanceTimeFrames per SalesStaff
+
+Messages with senderId, receiverId, enforced by business rules
+
+3. Database Schema (PostgreSQL + Prisma/TypeORM)
+sql
+Copy
+Edit
+-- Users
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  firstName TEXT NOT NULL,
+  lastName TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  workId TEXT UNIQUE NOT NULL,
+  nationalId TEXT,
+  phoneNumber TEXT,
+  password TEXT,
+  role TEXT NOT NULL CHECK (role IN ('Admin','Manager','SalesStaff','TeamLeader','Agent')),
+  managerId INT REFERENCES users(id)     -- for SalesStaff → Manager
+);
+
+-- AgentGroups
+CREATE TABLE agent_groups (
+  id SERIAL PRIMARY KEY,
+  salesStaffId INT REFERENCES users(id),
+  leaderId INT REFERENCES users(id),     -- must have role = 'TeamLeader'
+  isActive BOOLEAN DEFAULT TRUE
+);
+
+-- AgentGroupMembers
+CREATE TABLE agent_group_members (
+  groupId INT REFERENCES agent_groups(id),
+  agentId INT REFERENCES users(id),
+  PRIMARY KEY(groupId, agentId)
+);
+
+-- Clients
+CREATE TABLE clients (
+  id SERIAL PRIMARY KEY,
+  firstName TEXT,
+  lastName TEXT,
+  nationalId TEXT,
+  phone TEXT,
+  insuranceProduct TEXT,
+  paymentMethod TEXT,
+  feePaid NUMERIC,
+  location TEXT,
+  agentId INT REFERENCES users(id),
+  createdAt TIMESTAMP DEFAULT NOW(),
+  updatedAt TIMESTAMP DEFAULT NOW()
+);
+
+-- Attendance
+CREATE TABLE attendance (
+  id SERIAL PRIMARY KEY,
+  userId INT REFERENCES users(id),
+  date DATE NOT NULL,
+  sector TEXT,
+  location TEXT
+);
+
+-- Attendance Time Frames
+CREATE TABLE attendance_time_frames (
+  id SERIAL PRIMARY KEY,
+  managerId INT REFERENCES users(id),
+  startTime TIME,
+  endTime TIME,
+  createdAt TIMESTAMP DEFAULT NOW(),
+  updatedAt TIMESTAMP DEFAULT NOW()
+);
+
+-- Daily Reports
+CREATE TABLE daily_reports (
+  id SERIAL PRIMARY KEY,
+  agentId INT REFERENCES users(id),
+  date DATE NOT NULL,
+  comment TEXT,
+  clientsData JSONB,
+  createdAt TIMESTAMP DEFAULT NOW()
+);
+
+-- Help Requests
+CREATE TABLE help_requests (
+  id SERIAL PRIMARY KEY,
+  name TEXT,
+  email TEXT,
+  message TEXT,
+  resolved BOOLEAN DEFAULT FALSE,
+  createdAt TIMESTAMP DEFAULT NOW()
+);
+
+-- Messages
+CREATE TABLE messages (
+  id SERIAL PRIMARY KEY,
+  senderId INT REFERENCES users(id),
+  receiverId INT REFERENCES users(id),
+  content TEXT,
+  sentAt TIMESTAMP DEFAULT NOW()
+);
+4. System Architecture
+Backend (TypeScript)
+Framework: NestJS (or Express + Prisma/TypeORM)
+
+Auth: JWT, Role‑based guards
+
+DB: PostgreSQL via Prisma/TypeORM
+
+Email: Nodemailer (or SendGrid) for notifications & help‑request routing
+
+Sessions: Stateless (JWT) – no memory store needed
+
+Folder Structure:
+
+bash
+Copy
+Edit
+src/
+  modules/
+    auth/
+    users/
+    agents/
+    groups/
+    clients/
+    attendance/
+    reports/
+    messages/
+    help-requests/
+  common/
+  main.ts
+Frontend (React + TypeScript)
+Routing: React Router
+
+State: Redux Toolkit or Context API
+
+UI: Role‑aware dashboards; mobile‑responsive
+
+Auth: Store JWT in HTTP‑only cookie; guard routes
+
+Components per module: Users, Agents, Groups, Clients, Attendance, Reports, Messages, Help
+
+5. Core API Endpoints
+Auth
+http
+Copy
+Edit
+POST /auth/login
+POST /auth/help
+Admin
+http
+Copy
+Edit
+POST /admin/managers
+PATCH /admin/managers/:id
+DELETE /admin/managers/:id
+GET /admin/users
+POST /admin/users/:id/activate
+POST /admin/users/:id/deactivate
+Manager
+http
+Copy
+Edit
+POST /manager/sales-staff
+PATCH /manager/sales-staff/:id
+DELETE /manager/sales-staff/:id
+GET /manager/agents     → agents across all their SalesStaff
+GET /manager/reports
+POST /manager/messages
+SalesStaff
+http
+Copy
+Edit
+POST /sales-staff/agents             -- create individual or TeamLeader
+POST /sales-staff/agent-groups       -- create group & assign leader
+PATCH /sales-staff/agent-groups/:id  -- reassign leader, deactivate group
+DELETE /sales-staff/agents/:id
+GET /sales-staff/agents
+GET /sales-staff/attendance
+GET /sales-staff/reports
+POST /sales-staff/messages
+GET /sales-staff/messages
+Agent
+http
+Copy
+Edit
+POST /agent/attendance
+POST /agent/clients
+PATCH /agent/clients/:id
+GET /agent/reports
+TeamLeader
+http
+Copy
+Edit
+GET /leader/group-members
+POST /leader/daily-reports  -- aggregated
+Messaging & Help
+http
+Copy
+Edit
+POST /messages
+GET  /messages
+POST /help-requests
+GET  /help-requests
+PATCH /help-requests/:id/resolve
