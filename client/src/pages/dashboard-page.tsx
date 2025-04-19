@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import CreateUserDialog from "@/components/dialogs/create-user-dialog";
 import CreateClientDialog from "@/components/dialogs/create-client-dialog";
+import ActivityLog from "@/components/admin/activity-log";
 import { useQuery } from "@tanstack/react-query";
 import { Check, Users, CheckCircle, ClipboardList, UserPlus, MessageSquare, Calendar, HelpCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -186,6 +187,12 @@ function AdminDashboard() {
         )}
       </Card>
       
+      {/* Help Requests */}
+      {/* Activity Log */}
+      <div className="mb-6">
+        <ActivityLog />
+      </div>
+
       {/* Help Requests */}
       <Card>
         <CardHeader className="bg-gray-50 border-b border-gray-200">

@@ -17,6 +17,16 @@ export default function AuthPage() {
   const [, navigate] = useLocation();
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
 
+  // Initialize form before any conditionals
+  const form = useForm<LoginData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      workId: "",
+      email: "",
+      password: ""
+    }
+  });
+
   // Use effect for redirection to avoid React hook errors
   useEffect(() => {
     if (user) {
@@ -26,15 +36,6 @@ export default function AuthPage() {
 
   // If user is logged in, show empty div while redirecting
   if (user) return <div className="min-h-screen bg-gray-50"></div>;
-
-  const form = useForm<LoginData>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      workId: "",
-      email: "",
-      password: ""
-    }
-  });
 
   const onSubmit = (data: LoginData) => {
     loginMutation.mutate(data, {
