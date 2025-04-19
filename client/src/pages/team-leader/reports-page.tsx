@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -24,7 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-// Report form schema
+// Report form schema (kept for existingReport handling)
 const reportSchema = z.object({
   comment: z.string().min(10, 'Comment must be at least 10 characters long'),
   clientsVisited: z.string().min(1, 'Please enter the number of clients visited'),
@@ -38,6 +38,7 @@ export default function ReportsPage() {
   const { toast } = useToast();
   const today = new Date().toISOString().split('T')[0];
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const queryClient = useQueryClient(); // Added for invalidation
 
   // Get team members
   const { data: members, isLoading: isLoadingMembers } = useQuery({
@@ -51,7 +52,7 @@ export default function ReportsPage() {
     enabled: !!user
   });
 
-  // Setup form
+  // Setup form (kept for existingReport handling)
   const form = useForm<z.infer<typeof reportSchema>>({
     resolver: zodResolver(reportSchema),
     defaultValues: {
@@ -63,22 +64,11 @@ export default function ReportsPage() {
     }
   });
 
-  // Submit report mutation
+
+  // Submit report mutation (modified to handle the simplified form)
   const submitReportMutation = useMutation({
-    mutationFn: async (data: z.infer<typeof reportSchema>) => {
-      // Format clientsData
-      const clientsData = {
-        clientsVisited: parseInt(data.clientsVisited),
-        leadsGenerated: parseInt(data.leadsGenerated),
-        salesClosed: parseInt(data.salesClosed),
-        commissionEarned: parseFloat(data.commissionEarned)
-      };
-      
-      const res = await apiRequest('POST', '/api/leader/daily-reports', {
-        comment: data.comment,
-        clientsData
-      });
-      
+    mutationFn: async (data: { content: string }) => {
+      const res = await apiRequest('POST', '/api/leader/daily-reports', data);
       return await res.json();
     },
     onSuccess: () => {
@@ -99,10 +89,21 @@ export default function ReportsPage() {
     }
   });
 
-  const onSubmit = (data: z.infer<typeof reportSchema>) => {
-    setIsSubmitting(true);
-    submitReportMutation.mutate(data);
+  const [reportContent, setReportContent] = useState(""); //Added state for the new report form
+
+  const handleSubmitReport = () => {
+    if (!reportContent.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter report content",
+        variant: "destructive",
+      });
+      return;
+    }
+    setIsSubmitting(true); // Added to manage the loading state
+    submitReportMutation.mutate({ content: reportContent });
   };
+
 
   if (!user || user.role !== 'TeamLeader') {
     return (
@@ -118,12 +119,12 @@ export default function ReportsPage() {
   const isLoading = isLoadingMembers || isLoadingReport;
   const totalAgents = members?.length || 0;
   const hasSubmittedToday = !!existingReport;
-  
+
   // Format existing report data if available
   const formattedReport = existingReport ? {
     ...existingReport,
-    clientsData: typeof existingReport.clientsData === 'string' 
-      ? JSON.parse(existingReport.clientsData) 
+    clientsData: typeof existingReport.clientsData === 'string'
+      ? JSON.parse(existingReport.clientsData)
       : existingReport.clientsData
   } : null;
 
@@ -149,7 +150,7 @@ export default function ReportsPage() {
                   {hasSubmittedToday ? 'Today\'s Report' : 'Submit Daily Report'}
                 </CardTitle>
                 <CardDescription>
-                  {hasSubmittedToday 
+                  {hasSubmittedToday
                     ? `Report submitted on ${new Date(formattedReport?.createdAt || '').toLocaleString()}`
                     : `Report for ${new Date().toLocaleDateString()}`
                   }
@@ -165,18 +166,18 @@ export default function ReportsPage() {
                         You have already submitted a report for today.
                       </AlertDescription>
                     </Alert>
-                    
+
                     <div className="space-y-4">
                       <div>
                         <h3 className="text-sm font-medium">Comment</h3>
                         <p className="mt-1 text-sm">{formattedReport?.comment}</p>
                       </div>
-                      
+
                       <Separator />
-                      
+
                       <div>
                         <h3 className="text-sm font-medium mb-2">Team Performance</h3>
-                        
+
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           <div className="bg-gray-50 p-3 rounded">
                             <p className="text-xs text-muted-foreground">Clients Visited</p>
@@ -184,21 +185,21 @@ export default function ReportsPage() {
                               {formattedReport?.clientsData?.clientsVisited || 0}
                             </p>
                           </div>
-                          
+
                           <div className="bg-gray-50 p-3 rounded">
                             <p className="text-xs text-muted-foreground">Leads Generated</p>
                             <p className="text-lg font-semibold">
                               {formattedReport?.clientsData?.leadsGenerated || 0}
                             </p>
                           </div>
-                          
+
                           <div className="bg-gray-50 p-3 rounded">
                             <p className="text-xs text-muted-foreground">Sales Closed</p>
                             <p className="text-lg font-semibold">
                               {formattedReport?.clientsData?.salesClosed || 0}
                             </p>
                           </div>
-                          
+
                           <div className="bg-gray-50 p-3 rounded">
                             <p className="text-xs text-muted-foreground">Commission Earned</p>
                             <p className="text-lg font-semibold">
@@ -210,110 +211,37 @@ export default function ReportsPage() {
                     </div>
                   </div>
                 ) : (
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                      <FormField
-                        control={form.control}
-                        name="comment"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Team Report Summary</FormLabel>
-                            <FormControl>
-                              <Textarea 
-                                placeholder="Provide a summary of your team's performance today..." 
-                                className="min-h-[120px]" 
-                                {...field} 
-                              />
-                            </FormControl>
-                            <FormDescription>
-                              Include any challenges, achievements, or areas that need attention.
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+                  <Card className="mb-6"> {/* Added Card for styling */}
+                    <CardHeader className="bg-gray-50 border-b border-gray-200">
+                      <CardTitle>Submit Daily Report</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-6">
+                      <Textarea
+                        placeholder="Enter your daily report..."
+                        value={reportContent}
+                        onChange={(e) => setReportContent(e.target.value)}
+                        className="min-h-[200px] mb-4"
                       />
-                      
-                      <div>
-                        <h3 className="text-sm font-medium mb-4">Team Performance Metrics</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="clientsVisited"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Clients Visited</FormLabel>
-                                <FormControl>
-                                  <Input type="number" min="0" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="leadsGenerated"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Leads Generated</FormLabel>
-                                <FormControl>
-                                  <Input type="number" min="0" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="salesClosed"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Sales Closed</FormLabel>
-                                <FormControl>
-                                  <Input type="number" min="0" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          
-                          <FormField
-                            control={form.control}
-                            name="commissionEarned"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Commission Earned ($)</FormLabel>
-                                <FormControl>
-                                  <Input type="number" min="0" step="0.01" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
-                      </div>
-                      
-                      <Button type="submit" className="w-full" disabled={isSubmitting}>
+                      <Button
+                        onClick={handleSubmitReport}
+                        disabled={isSubmitting || submitReportMutation.isPending}
+                      >
                         {isSubmitting ? (
                           <>
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                             Submitting...
                           </>
                         ) : (
-                          <>
-                            <FileText className="mr-2 h-4 w-4" />
-                            Submit Team Report
-                          </>
+                          "Submit Report"
                         )}
                       </Button>
-                    </form>
-                  </Form>
+                    </CardContent>
+                  </Card>
                 )}
               </CardContent>
             </Card>
           </div>
-          
+
           <div>
             <Card>
               <CardHeader>
@@ -327,7 +255,7 @@ export default function ReportsPage() {
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-sm font-medium">Today's Reporting</h3>
                   </div>
-                  
+
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Team Leader Report</span>
@@ -341,18 +269,18 @@ export default function ReportsPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="bg-gray-50 p-4 rounded-md">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-sm font-medium">Team Information</h3>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Total Members</span>
                       <span className="font-medium">{totalAgents}</span>
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Reporting Cycle</span>
                       <span className="text-xs bg-blue-100 text-blue-800 rounded-full px-2 py-1">
@@ -361,7 +289,7 @@ export default function ReportsPage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <Button variant="outline" className="w-full flex items-center justify-center" onClick={() => window.location.href = '/team-leader/members'}>
                   View Team Members
                 </Button>

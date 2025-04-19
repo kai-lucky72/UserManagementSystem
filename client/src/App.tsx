@@ -33,35 +33,35 @@ function App() {
   return (
     <Switch>
       <Route path="/auth" component={AuthPage} />
-      
+
       {/* Dashboard route */}
-      <ProtectedRoute path="/" component={DashboardPage} />
-      
+      <ProtectedRoute path="/" component={DashboardPage} roles={["Admin", "Manager", "SalesStaff", "TeamLeader", "Agent"]} />
+
       {/* Admin routes */}
       <ProtectedRoute path="/admin/managers" component={ManagersPage} />
       <ProtectedRoute path="/admin/help-requests" component={HelpRequestsPage} />
-      
+
       {/* Manager routes */}
       <ProtectedRoute path="/manager/sales-staff" component={SalesStaffPage} />
       <ProtectedRoute path="/manager/agents" component={ManagerAgentsPage} />
       <ProtectedRoute path="/manager/messages" component={ManagerMessagesPage} />
-      
+
       {/* Sales Staff routes */}
       <ProtectedRoute path="/sales-staff/agents" component={SalesStaffAgentsPage} />
       <ProtectedRoute path="/sales-staff/agent-groups" component={AgentGroupsPage} />
       <ProtectedRoute path="/sales-staff/messages" component={SalesStaffMessagesPage} />
-      
+
       {/* Team Leader routes */}
-      <ProtectedRoute path="/team-leader/dashboard" component={TeamLeaderDashboardPage} />
-      <ProtectedRoute path="/team-leader/members" component={TeamLeaderMembersPage} />
-      <ProtectedRoute path="/team-leader/reports" component={TeamLeaderReportsPage} />
-      <ProtectedRoute path="/team-leader/attendance" component={TeamLeaderAttendancePage} />
-      
+      <ProtectedRoute path="/team-leader/dashboard" component={TeamLeaderDashboardPage} roles={["TeamLeader"]} />
+      <ProtectedRoute path="/team-leader/members" component={TeamLeaderMembersPage} roles={["TeamLeader"]} />
+      <ProtectedRoute path="/team-leader/reports" component={TeamLeaderReportsPage} roles={["TeamLeader"]} />
+      <ProtectedRoute path="/team-leader/attendance" component={TeamLeaderAttendancePage} roles={["TeamLeader"]} />
+
       {/* Agent routes */}
       <ProtectedRoute path="/agent/clients" component={ClientsPage} />
       <ProtectedRoute path="/agent/attendance" component={AttendancePage} />
       <ProtectedRoute path="/agent/messages" component={AgentMessagesPage} />
-      
+
       {/* Fallback to 404 */}
       <Route component={NotFound} />
     </Switch>
