@@ -24,12 +24,12 @@ interface SidebarProps {
 
 export default function Sidebar({ user, onLogout }: SidebarProps) {
   const [location] = useLocation();
-  const userInitials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
+  const userInitials = user ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}` : '';
 
   let menuItems: { icon: any; text: string; href: string }[] = [];
 
   // Generate menu items based on role
-  switch (user.role) {
+  switch (user?.role) {
     case "Admin":
       menuItems = [
         { icon: <LayoutDashboard size={20} />, text: "Dashboard", href: "/" },
