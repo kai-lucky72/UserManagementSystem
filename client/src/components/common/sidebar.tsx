@@ -34,7 +34,7 @@ export default function Sidebar({ user, onLogout }: SidebarProps) {
       menuItems = [
         { icon: <LayoutDashboard size={20} />, text: "Dashboard", href: "/" },
         { icon: <UserCog size={20} />, text: "Managers", href: "/admin/managers" },
-        { icon: <Users size={20} />, text: "All Users", href: "/admin/users" },
+        { icon: <Users size={20} />, text: "Users", href: "/admin/users" },
         { icon: <HelpCircle size={20} />, text: "Help Requests", href: "/admin/help-requests" },
         { icon: <Settings size={20} />, text: "Settings", href: "/admin/settings" }
       ];
