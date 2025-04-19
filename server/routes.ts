@@ -48,6 +48,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: (error as Error).message });
     }
   });
+  
+  // Activity log endpoints
+  app.get("/api/admin/activities", isAuthenticated, hasRole(["Admin"]), async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      const activities = await storage.getActivities(page, limit);
+      res.json(activities);
+    } catch (error) {
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
+  
+  app.post("/api/admin/activities", isAuthenticated, hasRole(["Admin"]), async (req, res) => {
+    try {
+      const admin = req.user as User;
+      const activityData = {
+        userId: admin.id,
+        action: req.body.action,
+        details: req.body.details,
+        timestamp: new Date()
+      };
+      const activity = await storage.logActivity(activityData);
+      res.status(201).json(activity);
+    } catch (error) {
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
+  
+  // User activation/deactivation
+  app.post("/api/admin/users/:id/activate", isAuthenticated, hasRole(["Admin"]), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const user = await storage.activateUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Log activity
+      const admin = req.user as User;
+      await storage.logActivity({
+        userId: admin.id,
+        action: "activate_user",
+        details: `Activated user: ${user.firstName} ${user.lastName} (${user.role})`,
+        timestamp: new Date()
+      });
+      
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
+  
+  app.post("/api/admin/users/:id/deactivate", isAuthenticated, hasRole(["Admin"]), async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const user = await storage.deactivateUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Log activity
+      const admin = req.user as User;
+      await storage.logActivity({
+        userId: admin.id,
+        action: "deactivate_user",
+        details: `Deactivated user: ${user.firstName} ${user.lastName} (${user.role})`,
+        timestamp: new Date()
+      });
+      
+      res.json(user);
+    } catch (error) {
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
 
   app.post("/api/admin/managers", isAuthenticated, hasRole(["Admin"]), async (req, res) => {
     try {
@@ -111,6 +186,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // These endpoints are now redundant with the ones defined above
+  // Keeping them commented out for reference
+  /*
   app.post("/api/admin/users/:id/activate", isAuthenticated, hasRole(["Admin"]), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -140,6 +218,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ message: (error as Error).message });
     }
   });
+  */
 
   app.get("/api/admin/help-requests", isAuthenticated, hasRole(["Admin"]), async (req, res) => {
     try {
@@ -166,6 +245,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // This is a duplicate of the above endpoint and can be removed
+  /*
   app.get("/api/admin/activities", isAuthenticated, hasRole(["Admin"]), async (req, res) => {
     try {
       const page = parseInt(req.query.page as string) || 1;
@@ -177,6 +258,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: (error as Error).message });
     }
   });
+  */
 
   // Manager routes
   app.post("/api/manager/sales-staff", isAuthenticated, hasRole(["Manager"]), async (req, res) => {

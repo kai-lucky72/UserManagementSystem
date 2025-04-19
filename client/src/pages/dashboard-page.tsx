@@ -8,6 +8,7 @@ import CreateUserDialog from "@/components/dialogs/create-user-dialog";
 import CreateClientDialog from "@/components/dialogs/create-client-dialog";
 import ActivityLog from "@/components/admin/activity-log";
 import { useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { Check, Users, CheckCircle, ClipboardList, UserPlus, MessageSquare, Calendar, HelpCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -165,11 +166,39 @@ function AdminDashboard() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex justify-end space-x-2">
-                      <Button variant="link" className="text-primary p-0 h-auto">Edit</Button>
+                      <Button variant="link" className="text-primary p-0 h-auto">
+                        Edit
+                      </Button>
                       <Button 
                         variant="link" 
                         className={manager.isActive ? "text-destructive" : "text-green-600"} 
                         size="sm"
+                        onClick={async () => {
+                          try {
+                            const endpoint = manager.isActive 
+                              ? `/api/admin/users/${manager.id}/deactivate`
+                              : `/api/admin/users/${manager.id}/activate`;
+                            
+                            await fetch(endpoint, { method: 'POST' });
+                            
+                            // Log this activity
+                            await fetch('/api/admin/activities', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json'
+                              },
+                              body: JSON.stringify({
+                                action: manager.isActive ? 'deactivate_user' : 'activate_user',
+                                details: `Admin ${manager.isActive ? 'deactivated' : 'activated'} manager: ${manager.firstName} ${manager.lastName}`
+                              })
+                            });
+                            
+                            // Refresh data
+                            queryClient.invalidateQueries({ queryKey: ["/api/admin/managers"] });
+                          } catch (error) {
+                            console.error("Error toggling manager status:", error);
+                          }
+                        }}
                       >
                         {manager.isActive ? "Deactivate" : "Activate"}
                       </Button>
