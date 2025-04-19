@@ -38,8 +38,10 @@ function App() {
       <ProtectedRoute path="/" component={DashboardPage} roles={["Admin", "Manager", "SalesStaff", "TeamLeader", "Agent"]} />
 
       {/* Admin routes */}
-      <ProtectedRoute path="/admin/managers" component={ManagersPage} />
-      <ProtectedRoute path="/admin/help-requests" component={HelpRequestsPage} />
+      <ProtectedRoute path="/admin/managers" component={ManagersPage} roles={["Admin"]} />
+      <ProtectedRoute path="/admin/help-requests" component={HelpRequestsPage} roles={["Admin"]} />
+      <ProtectedRoute path="/admin/users" component={UsersPage} roles={["Admin"]} />
+      <ProtectedRoute path="/admin/settings" component={SettingsPage} roles={["Admin"]} />
 
       {/* Manager routes */}
       <ProtectedRoute path="/manager/sales-staff" component={SalesStaffPage} />
