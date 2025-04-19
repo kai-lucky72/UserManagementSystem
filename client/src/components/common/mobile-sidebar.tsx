@@ -27,7 +27,7 @@ interface MobileSidebarProps {
 
 export default function MobileSidebar({ isOpen, onClose, user, onLogout }: MobileSidebarProps) {
   const [location] = useLocation();
-  const userInitials = user ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}` : '';
+  const userInitials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
 
   let menuItems: { icon: any; text: string; href: string }[] = [];
 

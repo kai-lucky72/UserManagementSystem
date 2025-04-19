@@ -24,17 +24,17 @@ interface SidebarProps {
 
 export default function Sidebar({ user, onLogout }: SidebarProps) {
   const [location] = useLocation();
-  const userInitials = user ? `${user.firstName.charAt(0)}${user.lastName.charAt(0)}` : '';
+  const userInitials = `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`;
 
   let menuItems: { icon: any; text: string; href: string }[] = [];
 
   // Generate menu items based on role
-  switch (user?.role) {
+  switch (user.role) {
     case "Admin":
       menuItems = [
         { icon: <LayoutDashboard size={20} />, text: "Dashboard", href: "/" },
         { icon: <UserCog size={20} />, text: "Managers", href: "/admin/managers" },
-        { icon: <Users size={20} />, text: "Users", href: "/admin/users" },
+        { icon: <Users size={20} />, text: "All Users", href: "/admin/users" },
         { icon: <HelpCircle size={20} />, text: "Help Requests", href: "/admin/help-requests" },
         { icon: <Settings size={20} />, text: "Settings", href: "/admin/settings" }
       ];
@@ -81,7 +81,7 @@ export default function Sidebar({ user, onLogout }: SidebarProps) {
         </div>
         <div className="flex-1 flex flex-col overflow-y-auto">
           <div className="px-4 py-3 text-sm font-medium text-gray-500 uppercase tracking-wider">
-            {user?.role ? `${user.role} Dashboard` : 'Dashboard'}
+            {user.role} Dashboard
           </div>
           <nav className="flex-1 px-4 pb-4 space-y-1">
             {menuItems.map((item, index) => (
@@ -114,11 +114,9 @@ export default function Sidebar({ user, onLogout }: SidebarProps) {
               <span className="font-medium">{userInitials}</span>
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-900">
-                {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'User'}
-              </p>
-              <p className="text-xs text-gray-500">{user?.email || 'No email'}</p>
-              <p className="text-xs text-gray-500">{user?.workId || 'No ID'}</p>
+              <p className="text-sm font-medium text-gray-900">{`${user.firstName} ${user.lastName}`}</p>
+              <p className="text-xs text-gray-500">{user.email}</p>
+              <p className="text-xs text-gray-500">{user.workId}</p>
             </div>
           </div>
           <button
