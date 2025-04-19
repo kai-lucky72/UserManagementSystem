@@ -43,7 +43,7 @@ function App() {
       <ProtectedRoute path="/admin/managers" component={ManagersPage} roles={["Admin"]} />
       <ProtectedRoute path="/admin/help-requests" component={HelpRequestsPage} roles={["Admin"]} />
       <ProtectedRoute path="/admin/users" component={UsersPage} roles={["Admin"]} />
-      <ProtectedRoute path="/admin/settings" component={SettingsPage} roles={["Admin"]} />
+      <ProtectedRoute path="/settings" component={SettingsPage} roles={["Admin", "Manager", "SalesStaff", "TeamLeader", "Agent"]} />
 
       {/* Manager routes */}
       <ProtectedRoute path="/manager/sales-staff" component={SalesStaffPage} />
