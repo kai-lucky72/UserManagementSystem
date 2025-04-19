@@ -81,7 +81,7 @@ export default function Sidebar({ user, onLogout }: SidebarProps) {
         </div>
         <div className="flex-1 flex flex-col overflow-y-auto">
           <div className="px-4 py-3 text-sm font-medium text-gray-500 uppercase tracking-wider">
-            {user.role} Dashboard
+            {user?.role ? `${user.role} Dashboard` : 'Dashboard'}
           </div>
           <nav className="flex-1 px-4 pb-4 space-y-1">
             {menuItems.map((item, index) => (
