@@ -1,6 +1,7 @@
 import { User, InsertUser, Client, InsertClient, AgentGroup, InsertAgentGroup, AgentGroupMember, 
   InsertAgentGroupMember, Attendance, InsertAttendance, AttendanceTimeFrame, InsertAttendanceTimeFrame,
-  DailyReport, InsertDailyReport, HelpRequest, InsertHelpRequest, Message, InsertMessage } from "@shared/schema";
+  DailyReport, InsertDailyReport, HelpRequest, InsertHelpRequest, Message, InsertMessage,
+  ActivityLog, InsertActivityLog } from "@shared/schema";
 import session from "express-session";
 import createMemoryStore from "memorystore";
 
@@ -23,6 +24,11 @@ export interface IStorage {
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
   activateUser(id: number): Promise<User | undefined>;
   deactivateUser(id: number): Promise<User | undefined>;
+  
+  // Activity Log operations
+  logActivity(activity: InsertActivityLog): Promise<ActivityLog>;
+  getActivities(page: number, limit: number): Promise<{activities: Array<ActivityLog & {userName: string, userRole: string}>, total: number}>;
+  getActivitiesByUser(userId: number, page: number, limit: number): Promise<{activities: ActivityLog[], total: number}>;
 
   // Client operations
   getClient(id: number): Promise<Client | undefined>;
@@ -81,6 +87,7 @@ export class MemStorage implements IStorage {
   private dailyReports: Map<number, DailyReport>;
   private helpRequests: Map<number, HelpRequest>;
   private messages: Map<number, Message>;
+  private activityLogs: Map<number, ActivityLog>;
   
   sessionStore: session.SessionStore;
   
@@ -92,6 +99,7 @@ export class MemStorage implements IStorage {
   private currentDailyReportId: number = 1;
   private currentHelpRequestId: number = 1;
   private currentMessageId: number = 1;
+  private currentActivityLogId: number = 1;
 
   constructor() {
     this.users = new Map();
@@ -103,6 +111,7 @@ export class MemStorage implements IStorage {
     this.dailyReports = new Map();
     this.helpRequests = new Map();
     this.messages = new Map();
+    this.activityLogs = new Map();
     
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // Clear expired sessions every 24h
@@ -470,6 +479,66 @@ export class MemStorage implements IStorage {
     };
     this.messages.set(id, readMessage);
     return readMessage;
+  }
+
+  // Activity Log operations
+  async logActivity(activity: InsertActivityLog): Promise<ActivityLog> {
+    const id = this.currentActivityLogId++;
+    const now = new Date();
+    const newActivity: ActivityLog = {
+      ...activity,
+      id,
+      timestamp: now
+    };
+    this.activityLogs.set(id, newActivity);
+    return newActivity;
+  }
+
+  async getActivities(page: number, limit: number): Promise<{
+    activities: Array<ActivityLog & {userName: string, userRole: string}>,
+    total: number
+  }> {
+    const activities = Array.from(this.activityLogs.values())
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    
+    const total = activities.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = Math.min(startIndex + limit, total);
+    
+    const paginatedActivities = activities.slice(startIndex, endIndex);
+    
+    // Add user information
+    const activitiesWithUserInfo = paginatedActivities.map(activity => {
+      const user = this.users.get(activity.userId);
+      return {
+        ...activity,
+        userName: user ? `${user.firstName} ${user.lastName}` : 'Unknown User',
+        userRole: user ? user.role : 'Unknown'
+      };
+    });
+    
+    return {
+      activities: activitiesWithUserInfo,
+      total
+    };
+  }
+
+  async getActivitiesByUser(userId: number, page: number, limit: number): Promise<{
+    activities: ActivityLog[],
+    total: number
+  }> {
+    const activities = Array.from(this.activityLogs.values())
+      .filter(activity => activity.userId === userId)
+      .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    
+    const total = activities.length;
+    const startIndex = (page - 1) * limit;
+    const endIndex = Math.min(startIndex + limit, total);
+    
+    return {
+      activities: activities.slice(startIndex, endIndex),
+      total
+    };
   }
 }
 

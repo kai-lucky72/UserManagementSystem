@@ -34,11 +34,11 @@ export default function ActivityLog() {
       case "logout":
         return <Badge variant="outline">Logout</Badge>;
       case "create_user":
-        return <Badge variant="success">User Created</Badge>;
+        return <Badge variant="secondary" className="bg-green-500 hover:bg-green-600 text-white">User Created</Badge>;
       case "update_user":
-        return <Badge variant="warning">User Updated</Badge>;
+        return <Badge variant="secondary" className="bg-amber-500 hover:bg-amber-600 text-white">User Updated</Badge>;
       case "create_group":
-        return <Badge variant="success">Group Created</Badge>;
+        return <Badge variant="secondary" className="bg-green-500 hover:bg-green-600 text-white">Group Created</Badge>;
       case "assign_agent":
         return <Badge variant="secondary">Agent Assigned</Badge>;
       default:
