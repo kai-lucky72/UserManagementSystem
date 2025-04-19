@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,11 +17,15 @@ export default function AuthPage() {
   const [, navigate] = useLocation();
   const [isHelpDialogOpen, setIsHelpDialogOpen] = useState(false);
 
-  // Redirect to dashboard if user is already logged in
-  if (user) {
-    navigate("/");
-    return null;
-  }
+  // Use effect for redirection to avoid React hook errors
+  useEffect(() => {
+    if (user) {
+      navigate("/");
+    }
+  }, [user, navigate]);
+
+  // If user is logged in, show empty div while redirecting
+  if (user) return <div className="min-h-screen bg-gray-50"></div>;
 
   const form = useForm<LoginData>({
     resolver: zodResolver(loginSchema),

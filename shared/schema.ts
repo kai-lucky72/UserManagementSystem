@@ -101,6 +101,15 @@ export const messages = pgTable("messages", {
   sentAt: timestamp("sent_at").defaultNow(),
 });
 
+// Activity log for system events
+export const activityLogs = pgTable("activity_logs", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  action: text("action").notNull(), // login, logout, create_user, update_user, etc.
+  details: text("details").notNull(),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
 // Zod schemas for insert operations
 export const insertUserSchema = createInsertSchema(users)
   .omit({ id: true, createdAt: true })
@@ -132,6 +141,9 @@ export const insertHelpRequestSchema = createInsertSchema(helpRequests)
 
 export const insertMessageSchema = createInsertSchema(messages)
   .omit({ id: true, read: true, sentAt: true });
+
+export const insertActivityLogSchema = createInsertSchema(activityLogs)
+  .omit({ id: true, timestamp: true });
 
 // Login schema
 export const loginSchema = z.object({
