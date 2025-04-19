@@ -42,11 +42,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/managers", isAuthenticated, hasRole(["Admin"]), async (req, res) => {
     try {
+      const admin = req.user as User;
       const managerData: InsertUser = {
         ...req.body,
         role: "Manager"
       };
       const manager = await storage.createUser(managerData);
+      
+      // Log activity
+      await storage.logActivity({
+        userId: admin.id,
+        action: "create_user",
+        details: `Admin created manager: ${manager.firstName} ${manager.lastName} (ID: ${manager.id})`
+      });
+      
       res.status(201).json(manager);
     } catch (error) {
       res.status(400).json({ message: (error as Error).message });
@@ -148,6 +157,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/admin/activities", isAuthenticated, hasRole(["Admin"]), async (req, res) => {
+    try {
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+      
+      const activities = await storage.getActivities(page, limit);
+      res.json(activities);
+    } catch (error) {
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
+
   // Manager routes
   app.post("/api/manager/sales-staff", isAuthenticated, hasRole(["Manager"]), async (req, res) => {
     try {
@@ -160,6 +181,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const salesStaff = await storage.createUser(salesStaffData);
+      
+      // Log activity
+      await storage.logActivity({
+        userId: currentUser.id,
+        action: "create_user",
+        details: `Manager created sales staff: ${salesStaff.firstName} ${salesStaff.lastName} (ID: ${salesStaff.id})`
+      });
+      
       res.status(201).json(salesStaff);
     } catch (error) {
       res.status(400).json({ message: (error as Error).message });
@@ -272,6 +301,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const agent = await storage.createUser(agentData);
+      
+      // Log activity
+      await storage.logActivity({
+        userId: currentUser.id,
+        action: "create_user",
+        details: `Sales staff created ${isTeamLeader ? 'team leader' : 'agent'}: ${agent.firstName} ${agent.lastName} (ID: ${agent.id})`
+      });
+      
       res.status(201).json(agent);
     } catch (error) {
       res.status(400).json({ message: (error as Error).message });
@@ -304,6 +341,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const group = await storage.createAgentGroup(groupData);
+      
+      // Log activity
+      await storage.logActivity({
+        userId: currentUser.id,
+        action: "create_group",
+        details: `Sales staff created agent group: "${group.name}" (ID: ${group.id})`
+      });
+      
       res.status(201).json(group);
     } catch (error) {
       res.status(400).json({ message: (error as Error).message });

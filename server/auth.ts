@@ -112,12 +112,20 @@ export async function setupAuth(app: Express) {
 
   // Routes
   app.post("/api/login", (req, res, next) => {
-    passport.authenticate("local", (err: Error, user: User, info: any) => {
+    passport.authenticate("local", async (err: Error, user: User, info: any) => {
       if (err) return next(err);
       if (!user) return res.status(401).json({ message: info.message || "Authentication failed" });
       
-      req.login(user, (err) => {
+      req.login(user, async (err) => {
         if (err) return next(err);
+        
+        // Log login activity
+        await storage.logActivity({
+          userId: user.id,
+          action: "login",
+          details: `${user.firstName} ${user.lastName} (${user.role}) logged in`
+        });
+        
         return res.status(200).json({
           id: user.id,
           firstName: user.firstName,
@@ -132,8 +140,21 @@ export async function setupAuth(app: Express) {
   });
 
   app.post("/api/logout", (req, res, next) => {
-    req.logout((err) => {
+    const user = req.user as User;
+    const userId = user?.id;
+    
+    req.logout(async (err) => {
       if (err) return next(err);
+      
+      // Log logout activity if user was authenticated
+      if (userId) {
+        await storage.logActivity({
+          userId,
+          action: "logout",
+          details: `${user.firstName} ${user.lastName} (${user.role}) logged out`
+        });
+      }
+      
       res.sendStatus(200);
     });
   });
