@@ -706,6 +706,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ message: (error as Error).message });
     }
   });
+  
+  // TeamLeader specific routes
+  app.get("/api/leader/group-members", isAuthenticated, hasRole(["TeamLeader"]), async (req, res) => {
+    try {
+      const currentUser = req.user as User;
+      
+      // Find the group where the current user is the leader
+      const groups = await storage.getAgentGroupsBySalesStaff(currentUser.managerId || 0);
+      const myGroup = groups.find(group => group.leaderId === currentUser.id);
+      
+      if (!myGroup) {
+        return res.status(404).json({ message: "No group found where you are the leader" });
+      }
+      
+      const members = await storage.getAgentsByGroup(myGroup.id);
+      res.json(members);
+    } catch (error) {
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
+  
+  // Endpoint for team leaders to submit aggregated daily reports
+  app.post("/api/leader/daily-reports", isAuthenticated, hasRole(["TeamLeader"]), async (req, res) => {
+    try {
+      const currentUser = req.user as User;
+      
+      const reportData: InsertDailyReport = {
+        ...req.body,
+        agentId: currentUser.id,
+        date: new Date()
+      };
+      
+      const report = await storage.createDailyReport(reportData);
+      
+      // Log the activity
+      await storage.logActivity({
+        userId: currentUser.id,
+        action: "create_report",
+        details: `Team leader submitted aggregated daily report (ID: ${report.id})`
+      });
+      
+      res.status(201).json(report);
+    } catch (error) {
+      res.status(400).json({ message: (error as Error).message });
+    }
+  });
 
   // Messages
   app.post("/api/messages", isAuthenticated, async (req, res) => {
