@@ -358,74 +358,250 @@ export default function AgentGroupsPage() {
         </div>
       )}
 
-      {/* Create Group Dialog */}
+      {/* Create Group or Team Leader Dialog */}
       <Dialog open={isCreateGroupDialogOpen} onOpenChange={setIsCreateGroupDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Create Agent Group</DialogTitle>
+            <DialogTitle>Create Team Leader & Agent Group</DialogTitle>
             <DialogDescription>
-              Create a new agent group and assign a team leader.
+              Create a new team leader, assign agents, and organize them into a group.
             </DialogDescription>
           </DialogHeader>
           
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Group Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter group name" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="leaderId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Team Leader (Optional)</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a team leader" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {teamLeaders.length === 0 ? (
-                          <p className="p-2 text-sm text-gray-500">No team leaders available</p>
-                        ) : (
-                          teamLeaders.map((leader: any) => (
-                            <SelectItem key={leader.id} value={leader.id.toString()}>
-                              {leader.firstName} {leader.lastName}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsCreateGroupDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createGroupMutation.isPending}>
-                  {createGroupMutation.isPending ? "Creating..." : "Create Group"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+          <Tabs defaultValue="create-team-leader" className="mt-4">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="create-team-leader" className="flex items-center">
+                <UserCog className="mr-2 h-4 w-4" /> 
+                Create New Team Leader
+              </TabsTrigger>
+              <TabsTrigger value="existing-leader" className="flex items-center">
+                <Shield className="mr-2 h-4 w-4" />
+                Use Existing Team Leader
+              </TabsTrigger>
+            </TabsList>
+            
+            {/* Tab for creating a new team leader */}
+            <TabsContent value="create-team-leader" className="mt-4">
+              <Form {...teamLeaderForm}>
+                <form onSubmit={teamLeaderForm.handleSubmit(onSubmitNewTeamLeader)} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={teamLeaderForm.control}
+                      name="firstName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>First Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="John" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={teamLeaderForm.control}
+                      name="lastName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Last Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Doe" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={teamLeaderForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="john.doe@example.com" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={teamLeaderForm.control}
+                      name="workId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Work ID</FormLabel>
+                          <FormControl>
+                            <Input placeholder="TL001" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={teamLeaderForm.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="******" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={teamLeaderForm.control}
+                      name="phoneNumber"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Phone Number (Optional)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="+1234567890" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={teamLeaderForm.control}
+                      name="nationalId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>National ID (Optional)</FormLabel>
+                          <FormControl>
+                            <Input placeholder="ID12345678" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={teamLeaderForm.control}
+                      name="groupName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Group Name</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Sales Team Alpha" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="mt-6">
+                    <Label>Assign Agents to this Team Leader</Label>
+                    <div className="mt-2 border rounded-md p-3 max-h-40 overflow-y-auto">
+                      {regularAgents.length === 0 ? (
+                        <p className="text-sm text-gray-500">No agents available to assign</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {regularAgents.map((agent: any) => (
+                            <div key={agent.id} className="flex items-center space-x-2">
+                              <Checkbox
+                                id={`agent-${agent.id}`}
+                                checked={selectedAgents.includes(agent.id.toString())}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedAgents([...selectedAgents, agent.id.toString()]);
+                                  } else {
+                                    setSelectedAgents(selectedAgents.filter(id => id !== agent.id.toString()));
+                                  }
+                                }}
+                              />
+                              <Label htmlFor={`agent-${agent.id}`} className="text-sm font-normal cursor-pointer">
+                                {agent.firstName} {agent.lastName} ({agent.workId})
+                              </Label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsCreateGroupDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={createTeamLeaderMutation.isPending}>
+                      {createTeamLeaderMutation.isPending ? "Creating..." : "Create Team Leader & Group"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </TabsContent>
+            
+            {/* Tab for using an existing team leader */}
+            <TabsContent value="existing-leader" className="mt-4">
+              <Form {...groupForm}>
+                <form onSubmit={groupForm.handleSubmit(onSubmitExistingLeader)} className="space-y-4">
+                  <FormField
+                    control={groupForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Group Name</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter group name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <FormField
+                    control={groupForm.control}
+                    name="leaderId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Team Leader</FormLabel>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a team leader" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {teamLeaders.length === 0 ? (
+                              <p className="p-2 text-sm text-gray-500">No team leaders available. Create one first.</p>
+                            ) : (
+                              teamLeaders.map((leader: any) => (
+                                <SelectItem key={leader.id} value={leader.id.toString()}>
+                                  {leader.firstName} {leader.lastName} ({leader.workId})
+                                </SelectItem>
+                              ))
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsCreateGroupDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={createGroupMutation.isPending || teamLeaders.length === 0}>
+                      {createGroupMutation.isPending ? "Creating..." : "Create Group"}
+                    </Button>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </TabsContent>
+          </Tabs>
         </DialogContent>
       </Dialog>
 
