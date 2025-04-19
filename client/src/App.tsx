@@ -18,6 +18,12 @@ import SalesStaffAgentsPage from "@/pages/sales-staff/agents-page";
 import AgentGroupsPage from "@/pages/sales-staff/agent-groups-page";
 import SalesStaffMessagesPage from "@/pages/sales-staff/messages-page";
 
+// Team Leader pages
+import TeamLeaderDashboardPage from "@/pages/team-leader/dashboard-page";
+import TeamLeaderMembersPage from "@/pages/team-leader/members-page";
+import TeamLeaderReportsPage from "@/pages/team-leader/reports-page";
+import TeamLeaderAttendancePage from "@/pages/team-leader/attendance-page";
+
 // Agent pages
 import ClientsPage from "@/pages/agent/clients-page";
 import AttendancePage from "@/pages/agent/attendance-page";
@@ -44,6 +50,12 @@ function App() {
       <ProtectedRoute path="/sales-staff/agents" component={SalesStaffAgentsPage} />
       <ProtectedRoute path="/sales-staff/agent-groups" component={AgentGroupsPage} />
       <ProtectedRoute path="/sales-staff/messages" component={SalesStaffMessagesPage} />
+      
+      {/* Team Leader routes */}
+      <ProtectedRoute path="/team-leader/dashboard" component={TeamLeaderDashboardPage} />
+      <ProtectedRoute path="/team-leader/members" component={TeamLeaderMembersPage} />
+      <ProtectedRoute path="/team-leader/reports" component={TeamLeaderReportsPage} />
+      <ProtectedRoute path="/team-leader/attendance" component={TeamLeaderAttendancePage} />
       
       {/* Agent routes */}
       <ProtectedRoute path="/agent/clients" component={ClientsPage} />
