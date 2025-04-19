@@ -510,6 +510,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: (error as Error).message });
     }
   });
+  
+  // Remove member from a group
+  app.delete("/api/sales-staff/agent-groups/:groupId/members/:agentId", isAuthenticated, hasRole(["SalesStaff"]), async (req, res) => {
+    try {
+      const groupId = parseInt(req.params.groupId);
+      const agentId = parseInt(req.params.agentId);
+      const currentUser = req.user as User;
+      
+      // Check if group belongs to this sales staff
+      const group = await storage.getAgentGroup(groupId);
+      
+      if (!group) {
+        return res.status(404).json({ message: "Group not found" });
+      }
+      
+      if (group.salesStaffId !== currentUser.id) {
+        return res.status(403).json({ message: "You can only remove members from your own groups" });
+      }
+      
+      // Check if the agent being removed is not the team leader
+      if (group.leaderId === agentId) {
+        return res.status(403).json({ message: "Cannot remove the team leader from their own group" });
+      }
+      
+      const success = await storage.removeAgentFromGroup(groupId, agentId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Member not found in this group" });
+      }
+      
+      // Log activity
+      await storage.logActivity({
+        userId: currentUser.id,
+        action: "remove_group_member",
+        details: `Removed agent ID: ${agentId} from group: "${group.name}" (ID: ${group.id})`
+      });
+      
+      res.status(200).json({ success: true });
+    } catch (error) {
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
 
   app.patch("/api/sales-staff/agent-groups/:id", isAuthenticated, hasRole(["SalesStaff"]), async (req, res) => {
     try {

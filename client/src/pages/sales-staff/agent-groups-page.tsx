@@ -225,6 +225,29 @@ export default function AgentGroupsPage() {
     },
   });
 
+  // Remove member from group mutation  
+  const removeMemberMutation = useMutation({
+    mutationFn: async ({ groupId, agentId }: { groupId: number; agentId: number }) => {
+      // Use DELETE method to remove an agent from a group
+      const res = await apiRequest("DELETE", `/api/sales-staff/agent-groups/${groupId}/members/${agentId}`, {});
+      return res.ok;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sales-staff/agent-groups", selectedGroupId, "members"] });
+      toast({
+        title: "Member removed",
+        description: "The agent has been removed from the group successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmitExistingLeader = (data: z.infer<typeof createGroupSchema>) => {
     createGroupMutation.mutate(data);
   };
@@ -635,7 +658,18 @@ export default function AgentGroupsPage() {
                         <p className="text-xs text-gray-500">{member.email}</p>
                       </div>
                     </div>
-                    <Button size="sm" variant="ghost">
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => {
+                        if (selectedGroupId) {
+                          removeMemberMutation.mutate({
+                            groupId: selectedGroupId,
+                            agentId: member.id
+                          });
+                        }
+                      }}
+                    >
                       <XCircle className="h-4 w-4" />
                     </Button>
                   </div>
