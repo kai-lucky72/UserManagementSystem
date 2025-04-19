@@ -114,9 +114,11 @@ export default function Sidebar({ user, onLogout }: SidebarProps) {
               <span className="font-medium">{userInitials}</span>
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-gray-900">{`${user.firstName} ${user.lastName}`}</p>
-              <p className="text-xs text-gray-500">{user.email}</p>
-              <p className="text-xs text-gray-500">{user.workId}</p>
+              <p className="text-sm font-medium text-gray-900">
+                {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'User'}
+              </p>
+              <p className="text-xs text-gray-500">{user?.email || 'No email'}</p>
+              <p className="text-xs text-gray-500">{user?.workId || 'No ID'}</p>
             </div>
           </div>
           <button
