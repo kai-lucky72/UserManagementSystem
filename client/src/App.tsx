@@ -2,6 +2,8 @@ import { Switch, Route } from "wouter";
 import NotFound from "@/pages/not-found";
 import AuthPage from "@/pages/auth-page";
 import DashboardPage from "@/pages/dashboard-page";
+import UsersPage from "@/pages/admin/users-page";
+import SettingsPage from "@/pages/admin/settings-page";
 import { ProtectedRoute } from "./lib/protected-route";
 
 // Admin pages
