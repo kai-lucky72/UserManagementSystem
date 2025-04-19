@@ -1,3 +1,4 @@
+
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
@@ -42,10 +43,7 @@ const TableFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <tfoot
     ref={ref}
-    className={cn(
-      "border-t bg-muted/50 font-medium [&>tr]:last:border-b-0",
-      className
-    )}
+    className={cn("border-t bg-muted/50 font-medium [&>tr]:last:border-b-0", className)}
     {...props}
   />
 ))
@@ -105,6 +103,45 @@ const TableCaption = React.forwardRef<
 ))
 TableCaption.displayName = "TableCaption"
 
+const DataTable = ({
+  columns,
+  data,
+  onRowClick,
+}: {
+  columns: any[];
+  data: any[];
+  onRowClick?: (row: any) => void;
+}) => {
+  return (
+    <div className="rounded-md border">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            {columns.map((column, index) => (
+              <TableHead key={index}>{column.header}</TableHead>
+            ))}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.map((row, rowIndex) => (
+            <TableRow
+              key={rowIndex}
+              onClick={() => onRowClick?.(row)}
+              className={onRowClick ? 'cursor-pointer' : ''}
+            >
+              {columns.map((column, colIndex) => (
+                <TableCell key={colIndex}>
+                  {column.cell ? column.cell(row) : row[column.accessorKey]}
+                </TableCell>
+              ))}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  )
+}
+
 export {
   Table,
   TableHeader,
@@ -114,4 +151,5 @@ export {
   TableRow,
   TableCell,
   TableCaption,
+  DataTable
 }
