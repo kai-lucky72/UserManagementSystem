@@ -40,6 +40,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/admin/managers", isAuthenticated, hasRole(["Admin"]), async (req, res) => {
+    try {
+      const managers = await storage.getUsers("Manager");
+      res.json(managers);
+    } catch (error) {
+      res.status(500).json({ message: (error as Error).message });
+    }
+  });
+
   app.post("/api/admin/managers", isAuthenticated, hasRole(["Admin"]), async (req, res) => {
     try {
       const admin = req.user as User;

@@ -9,7 +9,10 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Users, UserPlus, UserCheck, MessageSquare, MoreHorizontal, Edit, XCircle } from "lucide-react";
+import { 
+  Users, UserPlus, UserCheck, MessageSquare, MoreHorizontal, 
+  Edit, XCircle, UserCog, Shield, User 
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -37,10 +40,27 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { z } from "zod";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+// Schema for creating a team leader
+const createTeamLeaderSchema = z.object({
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Invalid email format"),
+  workId: z.string().min(1, "Work ID is required"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  phoneNumber: z.string().optional(),
+  nationalId: z.string().optional(),
+  role: z.literal("TeamLeader"),
+  assignAgents: z.array(z.string()).optional(),
+  groupName: z.string().min(1, "Group name is required"),
+});
+
+// Schema for creating a group using existing team leader
 const createGroupSchema = z.object({
   name: z.string().min(1, "Group name is required"),
-  leaderId: z.string().optional(),
+  leaderId: z.string().min(1, "Team leader is required"),
 });
 
 export default function AgentGroupsPage() {
@@ -49,6 +69,7 @@ export default function AgentGroupsPage() {
   const [selectedGroupId, setSelectedGroupId] = useState<number | null>(null);
   const [isViewMembersDialogOpen, setIsViewMembersDialogOpen] = useState(false);
   const [isAddMemberDialogOpen, setIsAddMemberDialogOpen] = useState(false);
+  const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -71,21 +92,94 @@ export default function AgentGroupsPage() {
   // Team leaders (for group creation)
   const teamLeaders = agents.filter((agent: any) => agent.role === "TeamLeader");
   
-  // Form for creating a group
-  const form = useForm<z.infer<typeof createGroupSchema>>({
+  // Form for creating a group with existing team leader
+  const groupForm = useForm<z.infer<typeof createGroupSchema>>({
     resolver: zodResolver(createGroupSchema),
     defaultValues: {
       name: "",
-      leaderId: undefined,
+      leaderId: "", 
     },
   });
 
-  // Create group mutation
+  // Form for creating a new team leader and group
+  const teamLeaderForm = useForm<z.infer<typeof createTeamLeaderSchema>>({
+    resolver: zodResolver(createTeamLeaderSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      workId: "",
+      password: "",
+      phoneNumber: "",
+      nationalId: "",
+      role: "TeamLeader",
+      assignAgents: [],
+      groupName: "",
+    },
+  });
+
+  // Create a new team leader and group mutation
+  const createTeamLeaderMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof createTeamLeaderSchema>) => {
+      // First create the team leader
+      const leaderRes = await apiRequest("POST", "/api/sales-staff/agents", {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        workId: data.workId,
+        password: data.password,
+        phoneNumber: data.phoneNumber || undefined,
+        nationalId: data.nationalId || undefined,
+        role: "TeamLeader"
+      });
+      
+      const leader = await leaderRes.json();
+      
+      // Then create the group with this leader
+      const groupRes = await apiRequest("POST", "/api/sales-staff/agent-groups", {
+        name: data.groupName,
+        leaderId: leader.id
+      });
+      
+      const group = await groupRes.json();
+      
+      // Finally, add selected agents to the group
+      if (data.assignAgents && data.assignAgents.length > 0) {
+        for (const agentId of data.assignAgents) {
+          await apiRequest("POST", `/api/sales-staff/agent-groups/${group.id}/members`, {
+            agentId: parseInt(agentId)
+          });
+        }
+      }
+      
+      return { leader, group };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/sales-staff/agent-groups"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/sales-staff/agents"] });
+      setIsCreateGroupDialogOpen(false);
+      teamLeaderForm.reset();
+      setSelectedAgents([]);
+      toast({
+        title: "Team leader and group created",
+        description: "The team leader and agent group have been created successfully.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create group with existing team leader mutation
   const createGroupMutation = useMutation({
-    mutationFn: async (data: any) => {
+    mutationFn: async (data: z.infer<typeof createGroupSchema>) => {
       const payload = {
         name: data.name,
-        leaderId: data.leaderId ? parseInt(data.leaderId) : undefined,
+        leaderId: parseInt(data.leaderId),
       };
       const res = await apiRequest("POST", "/api/sales-staff/agent-groups", payload);
       return await res.json();
@@ -93,7 +187,7 @@ export default function AgentGroupsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/sales-staff/agent-groups"] });
       setIsCreateGroupDialogOpen(false);
-      form.reset();
+      groupForm.reset();
       toast({
         title: "Group created",
         description: "The agent group has been created successfully.",
@@ -131,15 +225,25 @@ export default function AgentGroupsPage() {
     },
   });
 
-  const onSubmit = (data: z.infer<typeof createGroupSchema>) => {
+  const onSubmitExistingLeader = (data: z.infer<typeof createGroupSchema>) => {
     createGroupMutation.mutate(data);
+  };
+
+  const onSubmitNewTeamLeader = (data: z.infer<typeof createTeamLeaderSchema>) => {
+    createTeamLeaderMutation.mutate({
+      ...data,
+      assignAgents: selectedAgents
+    });
   };
 
   const getSelectedGroup = () => {
     return agentGroups.find((group: any) => group.id === selectedGroupId);
   };
 
-  // Filter out agents who are not team leaders and agents who are already in the group
+  // Only regular agents (not team leaders)
+  const regularAgents = agents.filter((agent: any) => agent.role === "Agent");
+
+  // Filter out agents who are already in the group
   const availableAgents = agents.filter((agent: any) => {
     // Only regular agents, not team leaders
     if (agent.role !== "Agent") return false;
